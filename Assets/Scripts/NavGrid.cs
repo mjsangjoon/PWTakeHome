@@ -4,19 +4,22 @@ using System.Collections.Generic;
 public class NavGrid : MonoBehaviour
 {
     public int NumberOfCellsPerSide;
-    public HashSet<Vector3> obstacleLocations;
+    public Vector3[] obstacleLocations;
+    public int numObstacles;
     public Player player;
+    private float planeYVal = 0;
 
     /// <summary>
     /// Given the current and desired location, return a path to the destination
     /// </summary>
     public NavGridPathNode[] GetPath(Vector3 origin, Vector3 destination)
     {
-        NavGridPathNode destinationNode = aStarSearch(origin, destination);
+        planeYVal = GetComponent<MeshCollider>().transform.position. y;
+        NavGridPathNode destinationNode = AStarSearch(origin, destination);
 
+        // A* did not find a valid path so there is no parent for the destination node
         if(destinationNode.Parent == null){
             return new NavGridPathNode[]{
-                new() { Position = origin },
                 new() { Position = origin }
             };
         }
@@ -26,14 +29,21 @@ public class NavGrid : MonoBehaviour
             path.Push(destinationNode);
             destinationNode = destinationNode.Parent;
         }
-
+        //last node pushed is the true destination, not grid destination
+        path.Push(new NavGridPathNode(
+            new Vector3(destination.x, destination.y, destination.z),
+            destinationNode,
+            destinationNode.fVal+1,
+            destinationNode.gVal+1,
+            destinationNode.hVal));
         return path.ToArray();
     }
 
-    public NavGridPathNode aStarSearch(Vector3 origin, Vector3 destination){
-        //sets to track visted nodes and potential nodes
+    public NavGridPathNode AStarSearch(Vector3 origin, Vector3 destination){
+        //sets to track visted nodes, potential nodes, and obstacle locations
         HashSet<NavGridPathNode> checkedNodes = new HashSet<NavGridPathNode>();
         SortedSet<NavGridPathNode> uncheckedNodes = new SortedSet<NavGridPathNode>(new FValComparer());
+        HashSet<Vector3> obstacleSet = new HashSet<Vector3>(obstacleLocations);
         Vector3 gridDestination = GetNearestGridPosition(destination);
 
         //seed with starting location
@@ -54,7 +64,7 @@ public class NavGrid : MonoBehaviour
              * southeast, and southwest directions
              */
             // North successor
-            NavGridPathNode north = new NavGridPathNode(new Vector3(n.Position.x-GetCellSize(), 0, n.Position.z));
+            NavGridPathNode north = new NavGridPathNode(new Vector3(n.Position.x-GetCellSize(), planeYVal, n.Position.z));
             if (IsValidNode(north.Position)){
                 // found the destination, set parent and return
                 if(north.Position == gridDestination){
@@ -64,7 +74,7 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it, otherwise add to unchecked
                 // or update node with new f val
-                else if (!checkedNodes.Contains(north) && !obstacleLocations.Contains(north.Position)){
+                else if (!checkedNodes.Contains(north) && !obstacleSet.Contains(north.Position)){
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(north.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -91,7 +101,7 @@ public class NavGrid : MonoBehaviour
             }
 
             // South successor
-            NavGridPathNode south = new NavGridPathNode(new Vector3(n.Position.x+GetCellSize(), 0, n.Position.z));
+            NavGridPathNode south = new NavGridPathNode(new Vector3(n.Position.x+GetCellSize(), planeYVal, n.Position.z));
             if (IsValidNode(south.Position)){
                 // found the destination, set parent and return
                 if(south.Position == gridDestination){
@@ -100,7 +110,7 @@ public class NavGrid : MonoBehaviour
                     return south;
                 }
                 // If successor is already checked or blocked, ignore it
-                else if (!checkedNodes.Contains(south) && !obstacleLocations.Contains(south.Position)){
+                else if (!checkedNodes.Contains(south) && !obstacleSet.Contains(south.Position)){
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(south.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -127,7 +137,7 @@ public class NavGrid : MonoBehaviour
             }
 
             // East successor
-            NavGridPathNode east = new NavGridPathNode(new Vector3(n.Position.x, 0, n.Position.z+GetCellSize()));
+            NavGridPathNode east = new NavGridPathNode(new Vector3(n.Position.x, planeYVal, n.Position.z+GetCellSize()));
             if (IsValidNode(east.Position)){
                 // found the destination, set parent and return
                 if(east.Position == gridDestination){
@@ -136,7 +146,7 @@ public class NavGrid : MonoBehaviour
                     return east;
                 }
                 // If successor is already checked or blocked, ignore it
-                else if (!checkedNodes.Contains(east) && !obstacleLocations.Contains(east.Position)){
+                else if (!checkedNodes.Contains(east) && !obstacleSet.Contains(east.Position)){
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(east.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -163,7 +173,7 @@ public class NavGrid : MonoBehaviour
             }
 
             // West successor
-            NavGridPathNode west = new NavGridPathNode(new Vector3(n.Position.x, 0, n.Position.z-GetCellSize()));
+            NavGridPathNode west = new NavGridPathNode(new Vector3(n.Position.x, planeYVal, n.Position.z-GetCellSize()));
             if (IsValidNode(west.Position)){
                 // found the destination, set parent and return
                 if(west.Position == gridDestination){
@@ -172,7 +182,7 @@ public class NavGrid : MonoBehaviour
                     return west;
                 }
                 // If successor is already checked or blocked, ignore it
-                else if (!checkedNodes.Contains(west) && !obstacleLocations.Contains(west.Position)){
+                else if (!checkedNodes.Contains(west) && !obstacleSet.Contains(west.Position)){
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(west.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -199,7 +209,7 @@ public class NavGrid : MonoBehaviour
             }
 
             // Northeast successor
-            NavGridPathNode northeast = new NavGridPathNode(new Vector3(n.Position.x-GetCellSize(), 0, n.Position.z+GetCellSize()));
+            NavGridPathNode northeast = new NavGridPathNode(new Vector3(n.Position.x-GetCellSize(), planeYVal, n.Position.z+GetCellSize()));
             if (IsValidNode(northeast.Position)){
                 // found the destination, set parent and return
                 if(northeast.Position == gridDestination){
@@ -208,7 +218,7 @@ public class NavGrid : MonoBehaviour
                     return northeast;
                 }
                 // If successor is already checked or blocked, ignore it
-                else if (!checkedNodes.Contains(northeast) && !obstacleLocations.Contains(northeast.Position)){
+                else if (!checkedNodes.Contains(northeast) && !obstacleSet.Contains(northeast.Position)){
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(northeast.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -235,7 +245,7 @@ public class NavGrid : MonoBehaviour
             }
 
             // Northwest successor
-            NavGridPathNode northwest = new NavGridPathNode(new Vector3(n.Position.x-GetCellSize(), 0, n.Position.z-GetCellSize()));
+            NavGridPathNode northwest = new NavGridPathNode(new Vector3(n.Position.x-GetCellSize(), planeYVal, n.Position.z-GetCellSize()));
             if (IsValidNode(northwest.Position)){
                 // found the destination, set parent and return
                 if(northwest.Position == gridDestination){
@@ -244,7 +254,7 @@ public class NavGrid : MonoBehaviour
                     return northwest;
                 }
                 // If successor is already checked or blocked, ignore it
-                else if (!checkedNodes.Contains(northwest) && !obstacleLocations.Contains(northwest.Position)){
+                else if (!checkedNodes.Contains(northwest) && !obstacleSet.Contains(northwest.Position)){
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(northwest.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -271,7 +281,7 @@ public class NavGrid : MonoBehaviour
             }
 
             // Southeast successor
-            NavGridPathNode southeast = new NavGridPathNode(new Vector3(n.Position.x+GetCellSize(), 0, n.Position.z+GetCellSize()));
+            NavGridPathNode southeast = new NavGridPathNode(new Vector3(n.Position.x+GetCellSize(), planeYVal, n.Position.z+GetCellSize()));
             if (IsValidNode(southeast.Position)){
                 // found the destination, set parent and return
                 if(southeast.Position == gridDestination){
@@ -280,7 +290,7 @@ public class NavGrid : MonoBehaviour
                     return southeast;
                 }
                 // If successor is already checked or blocked, ignore it
-                else if (!checkedNodes.Contains(southeast) && !obstacleLocations.Contains(southeast.Position)){
+                else if (!checkedNodes.Contains(southeast) && !obstacleSet.Contains(southeast.Position)){
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(southeast.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -307,7 +317,7 @@ public class NavGrid : MonoBehaviour
             }
 
             // Southwest successor
-            NavGridPathNode southwest = new NavGridPathNode(new Vector3(n.Position.x+GetCellSize(), 0, n.Position.z-GetCellSize()));
+            NavGridPathNode southwest = new NavGridPathNode(new Vector3(n.Position.x+GetCellSize(), planeYVal, n.Position.z-GetCellSize()));
             if (IsValidNode(southwest.Position)){
                 // found the destination, set parent and return
                 if(southwest.Position == gridDestination){
@@ -316,7 +326,7 @@ public class NavGrid : MonoBehaviour
                     return southwest;
                 }
                 // If successor is already checked or blocked, ignore it
-                else if (!checkedNodes.Contains(southwest) && !obstacleLocations.Contains(southwest.Position)){
+                else if (!checkedNodes.Contains(southwest) && !obstacleSet.Contains(southwest.Position)){
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(southwest.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -347,30 +357,30 @@ public class NavGrid : MonoBehaviour
         return new NavGridPathNode(origin, null, 0, 0, 0);
     }
 
-    public void AddObstacles(int numObstacles){
+    public void AddObstacles(){
         //randomly add new obstacles in cells until numObstacles is reached
-        HashSet<Vector3> nodes = new HashSet<Vector3>(numObstacles);
-
-        while (nodes.Count < numObstacles-1)
+        HashSet<Vector3> nodes = new HashSet<Vector3>(obstacleLocations);
+        for(int i = obstacleLocations.Length; i < numObstacles; i++)
         {
             //scale to number of cells per side of plane to allow hashing, don't put something on player
             float x = Random.Range(0, 1) * NumberOfCellsPerSide;
             float z = Random.Range(0, 1) * NumberOfCellsPerSide;
-            if(Mathf.Abs(x - player.transform.position.x) < .000001 && Mathf.Abs(z - player.transform.position.z) < .000001)
+            if(Mathf.Abs(x - player.transform.position.x) < .000001 && Mathf.Abs(z - player.transform.position.z) < .000001){
                 continue;
-
-            nodes.Add(new Vector3(x, 0, z));
+            }
+            Debug.Log("adding obstacle at (" + x + ", " + planeYVal + ", " + z + ")");
+            nodes.Add(new Vector3(x, planeYVal, z));
         }
-        obstacleLocations = nodes;
+        nodes.CopyTo(obstacleLocations);
     }
 
     /***
      * Utility functions
      */
     private bool IsValidNode(Vector3 position){
-        RaycastHit hit;
         Vector3 origin = new Vector3(position.x, 5, position.z);
-        return Physics.SphereCast(origin, GetCellSize(), Vector3.down, out hit, 10);
+        bool result = Physics.Raycast(origin, Vector3.down, out var hit, 10);
+        return result;
     }
 
     private float GetCellSize(){
@@ -381,13 +391,13 @@ public class NavGrid : MonoBehaviour
     private Vector3 GetNearestGridPosition(Vector3 position){
         Vector3[,] allGridNodePositions = new Vector3[NumberOfCellsPerSide,NumberOfCellsPerSide];
         var gridCollider = GetComponent<MeshCollider>();
-        Vector3 closest = gridCollider.bounds.min;
+        Vector3 start = new Vector3(gridCollider.bounds.min.x, planeYVal, gridCollider.bounds.min.z);
+        Vector3 closest = start;
 
         for (int i = 0; i < NumberOfCellsPerSide; i++){
             for (int j = 0; j < NumberOfCellsPerSide; j++){
-                float size = GetCellSize();
-                Vector3 nodePos = gridCollider.bounds.min + new Vector3((float)i * size, 0, (float)j * size);
-                closest = Vector3.Distance(nodePos, position) < Vector3.Distance(closest, position) ? nodePos : closest;  
+                Vector3 nodePos = new Vector3(start.x + (float)i * GetCellSize(), planeYVal, start.z + (float)j * GetCellSize());
+                closest = Vector3.Distance(nodePos, position) < Vector3.Distance(closest, position) ? nodePos : closest;
             }
         }
 
@@ -398,12 +408,13 @@ public class NavGrid : MonoBehaviour
 //Comparer class for sorted set, sort by f value
 public class FValComparer : IComparer<NavGridPathNode>
 {
+    float tolerance = .00000001f;
     int IComparer<NavGridPathNode>.Compare(NavGridPathNode a, NavGridPathNode b){
-        if(a.fVal < b.fVal)
+        if(Mathf.Abs(a.fVal - b.fVal) < tolerance)
+            return 0;
+        else if(a.fVal < b.fVal)
             return -1;
-        else if (a.fVal > b.fVal)
+        else
             return 1;
-        //should never get here since float equals is hard to do
-        else return 0;
     }
 }

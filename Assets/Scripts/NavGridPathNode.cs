@@ -64,4 +64,8 @@ public class NavGridPathNode
     public static bool operator !=(NavGridPathNode a, NavGridPathNode b){
         return !a.Equals(b);
     }
+
+    public override string ToString(){
+        return Position.ToString();
+    }
 }
