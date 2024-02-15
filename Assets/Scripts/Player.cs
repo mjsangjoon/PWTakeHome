@@ -66,47 +66,6 @@ public class Player : MonoBehaviour
         }
         else
         {
-            /*bool turned = false;
-            Vector3 start = _currentPath[0].Position;   //track start of straight sections
-            for (int i = 2; i < _currentPath.Length; i++)
-            {
-                bool xChanged = _currentPath[i-1].Position.x != _currentPath[i-2].Position.x;
-                bool zChanged = _currentPath[i-1].Position.z != _currentPath[i-2].Position.z;
-
-                //One axis changed again while the other stayed constant, e.g we kept going straight
-                if (_currentPath[i].Position.x != _currentPath[i - 1].Position.x && xChanged && !zChanged ||
-                    _currentPath[i].Position.z != _currentPath[i - 1].Position.z && zChanged && !xChanged)
-                {
-                    continue;
-                }
-
-                //x stayed constant after changing, e.g we turned on the z-axis; need to make a straight section
-                if(_currentPath[i].Position.x == _currentPath[i - 1].Position.x && xChanged)
-                {
-                    turned = true;
-                    pathSections.Add(new StraightPathSection(start, _currentPath[i - 2].Position, transform.position.y));
-                    start = Vector3.zero;
-                }
-                //z stayed constant after changing, e.g we turned on the x-axis; need to make a straight section
-                else if (_currentPath[i].Position.z == _currentPath[i - 1].Position.z && zChanged)
-                {
-                    turned = true;
-                    pathSections.Add(new StraightPathSection(start, _currentPath[i - 2].Position, transform.position.y));
-                    start = Vector3.zero;
-                }
-
-                if (turned)
-                {
-                    start = _currentPath[i - 1].Position;
-                    pathSections.Add(new CurvedPathSection(_currentPath[i].Position, _currentPath[i - 1].Position, _currentPath[i - 2].Position, transform.position.y));
-                    turned = false;
-                }
-            }
-            if(start != Vector3.zero)
-            {
-                pathSections.Add(new StraightPathSection(start, _currentPath[_currentPath.Length-1].Position, transform.position.y));
-            }*/
-
             bool isStraight = !(_currentPath[0].Position.x != _currentPath[2].Position.x && _currentPath[0].Position.z != _currentPath[2].Position.z);
             Vector3 start = _currentPath[0].Position;
             for (int i = 2; i < _currentPath.Length; i++)
