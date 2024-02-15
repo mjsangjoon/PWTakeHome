@@ -1,12 +1,16 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class NavGrid : MonoBehaviour
 {
     public int NumberOfCellsPerSide;
     public Vector3[] obstacleLocations;
-    public int numObstacles;
+
+    [ContextMenuItem("Add this many obstacles to grid", "AddObstacles")]
+    public int numObstaclesToAdd;
     public Player player;
+    public GameObject obstaclePrefab;
     private float planeYVal = 0;
 
     /// <summary>
@@ -43,7 +47,7 @@ public class NavGrid : MonoBehaviour
         //sets to track visted nodes, potential nodes, and obstacle locations
         HashSet<NavGridPathNode> checkedNodes = new HashSet<NavGridPathNode>();
         SortedSet<NavGridPathNode> uncheckedNodes = new SortedSet<NavGridPathNode>(new FValComparer());
-        HashSet<Vector3> obstacleSet = new HashSet<Vector3>(obstacleLocations);
+        HashSet<Vector3> obstacleSet = arrayToHashSet(obstacleLocations);
         Vector3 gridDestination = GetNearestGridPosition(destination);
 
         //seed with starting location
@@ -357,21 +361,50 @@ public class NavGrid : MonoBehaviour
         return new NavGridPathNode(origin, null, 0, 0, 0);
     }
 
-    public void AddObstacles(){
-        //randomly add new obstacles in cells until numObstacles is reached
-        HashSet<Vector3> nodes = new HashSet<Vector3>(obstacleLocations);
-        for(int i = obstacleLocations.Length; i < numObstacles; i++)
+
+    //randomly add new obstacles in cells until numObstacles is reached
+    private void AddObstacles(){
+        planeYVal = GetComponent<MeshCollider>().transform.position. y;
+        //determine how many obstacles to add, we don't want more than the total number of cells
+        int numObstaclesToAddInMethod = numObstaclesToAdd;
+        if (obstacleLocations.Length + numObstaclesToAddInMethod > NumberOfCellsPerSide*NumberOfCellsPerSide-1){
+            numObstaclesToAddInMethod = (obstacleLocations.Length + numObstaclesToAddInMethod) % (NumberOfCellsPerSide*NumberOfCellsPerSide-1);
+        }
+
+        //Setup things needed in method
+        HashSet<Vector3> nodes = arrayToHashSet(obstacleLocations);
+        var minPoint = GetComponent<MeshCollider>().bounds.min;
+        Vector3[] newObstacles = new Vector3[numObstaclesToAddInMethod + obstacleLocations.Length];
+        //add current obstacles
+        for (int i = 0; i < obstacleLocations.Length; i++){
+            nodes.Add(obstacleLocations[i]);
+        }
+
+        for (int i = 0; i < numObstaclesToAddInMethod; i++)
         {
             //scale to number of cells per side of plane to allow hashing, don't put something on player
-            float x = Random.Range(0, 1) * NumberOfCellsPerSide;
-            float z = Random.Range(0, 1) * NumberOfCellsPerSide;
-            if(Mathf.Abs(x - player.transform.position.x) < .000001 && Mathf.Abs(z - player.transform.position.z) < .000001){
+            float x = UnityEngine.Random.Range(minPoint.x, minPoint.x + (GetCellSize()*NumberOfCellsPerSide));
+            float z = UnityEngine.Random.Range(minPoint.z, minPoint.z + (GetCellSize()*NumberOfCellsPerSide));
+            Debug.Log("x: " + x.ToString());
+            Debug.Log("z: " + z.ToString());
+            Vector3 obs = GetNearestGridPosition(new Vector3(minPoint.x + x, planeYVal, minPoint.z + z));
+            if(nodes.Contains(obs) || obs == GetNearestGridPosition(player.transform.position)){
+                i--;
                 continue;
             }
-            Debug.Log("adding obstacle at (" + x + ", " + planeYVal + ", " + z + ")");
             nodes.Add(new Vector3(x, planeYVal, z));
         }
-        nodes.CopyTo(obstacleLocations);
+
+        nodes.CopyTo(newObstacles);
+        obstacleLocations = newObstacles;
+        GenerateObstacles();
+    }
+
+    public void GenerateObstacles(){
+        for(int i = 0; i < obstacleLocations.Length; i++){
+            var obs = Instantiate(obstaclePrefab, obstacleLocations[i], Quaternion.identity);
+            obs.transform.localScale = new Vector3(obs.transform.localScale.x*GetCellSize(), 1, obs.transform.localScale.z*GetCellSize());
+        }
     }
 
     /***
@@ -402,6 +435,14 @@ public class NavGrid : MonoBehaviour
         }
 
         return closest;
+    }
+
+    private HashSet<T> arrayToHashSet<T>(T[] arr){
+        HashSet<T> ret = new HashSet<T>();
+        foreach (var i in arr){
+            ret.Add(i);
+        }
+        return ret;
     }
 }
 
