@@ -79,6 +79,7 @@ public class NavGrid : MonoBehaviour
                 // If successor is already checked or blocked, ignore it, otherwise add to unchecked
                 // or update node with new f val
                 else if (!checkedNodes.Contains(north) && !obstacleSet.Contains(north.Position)){
+            Debug.Log("successor valid1");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(north.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -115,6 +116,7 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(south) && !obstacleSet.Contains(south.Position)){
+            Debug.Log("successor valid2");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(south.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -151,6 +153,7 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(east) && !obstacleSet.Contains(east.Position)){
+            Debug.Log("successor valid3");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(east.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -187,6 +190,7 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(west) && !obstacleSet.Contains(west.Position)){
+            Debug.Log("successor valid4");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(west.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -223,6 +227,7 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(northeast) && !obstacleSet.Contains(northeast.Position)){
+            Debug.Log("successor valid5");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(northeast.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -259,6 +264,7 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(northwest) && !obstacleSet.Contains(northwest.Position)){
+            Debug.Log("successor valid6");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(northwest.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -295,6 +301,7 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(southeast) && !obstacleSet.Contains(southeast.Position)){
+            Debug.Log("successor valid7");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(southeast.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -331,6 +338,7 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(southwest) && !obstacleSet.Contains(southwest.Position)){
+            Debug.Log("successor valid8");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(southwest.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -358,6 +366,7 @@ public class NavGrid : MonoBehaviour
         }
 
         //didn't find a path to destination so we return origin again
+        Debug.Log("not found");
         return new NavGridPathNode(origin, null, 0, 0, 0);
     }
 
@@ -374,6 +383,7 @@ public class NavGrid : MonoBehaviour
         //Setup things needed in method
         HashSet<Vector3> nodes = arrayToHashSet(obstacleLocations);
         var minPoint = GetComponent<MeshCollider>().bounds.min;
+        var colliderSize = GetComponent<MeshCollider>().bounds.size;
         Vector3[] newObstacles = new Vector3[numObstaclesToAddInMethod + obstacleLocations.Length];
         //add current obstacles
         for (int i = 0; i < obstacleLocations.Length; i++){
@@ -383,16 +393,14 @@ public class NavGrid : MonoBehaviour
         for (int i = 0; i < numObstaclesToAddInMethod; i++)
         {
             //scale to number of cells per side of plane to allow hashing, don't put something on player
-            float x = UnityEngine.Random.Range(minPoint.x, minPoint.x + (GetCellSize()*NumberOfCellsPerSide));
-            float z = UnityEngine.Random.Range(minPoint.z, minPoint.z + (GetCellSize()*NumberOfCellsPerSide));
-            Debug.Log("x: " + x.ToString());
-            Debug.Log("z: " + z.ToString());
-            Vector3 obs = GetNearestGridPosition(new Vector3(minPoint.x + x, planeYVal, minPoint.z + z));
+            float x = UnityEngine.Random.Range(minPoint.x, minPoint.x + colliderSize.x);
+            float z = UnityEngine.Random.Range(minPoint.z, minPoint.z + colliderSize.z);
+            Vector3 obs = GetNearestGridPosition(new Vector3(x, planeYVal, z));
             if(nodes.Contains(obs) || obs == GetNearestGridPosition(player.transform.position)){
                 i--;
                 continue;
             }
-            nodes.Add(new Vector3(x, planeYVal, z));
+            nodes.Add(obs);
         }
 
         nodes.CopyTo(newObstacles);
@@ -403,7 +411,7 @@ public class NavGrid : MonoBehaviour
     public void GenerateObstacles(){
         for(int i = 0; i < obstacleLocations.Length; i++){
             var obs = Instantiate(obstaclePrefab, obstacleLocations[i], Quaternion.identity);
-            obs.transform.localScale = new Vector3(obs.transform.localScale.x*GetCellSize(), 1, obs.transform.localScale.z*GetCellSize());
+            obs.transform.localScale = new Vector3(GetCellSize(), 1, GetCellSize());
         }
     }
 
@@ -424,7 +432,7 @@ public class NavGrid : MonoBehaviour
     private Vector3 GetNearestGridPosition(Vector3 position){
         Vector3[,] allGridNodePositions = new Vector3[NumberOfCellsPerSide,NumberOfCellsPerSide];
         var gridCollider = GetComponent<MeshCollider>();
-        Vector3 start = new Vector3(gridCollider.bounds.min.x, planeYVal, gridCollider.bounds.min.z);
+        Vector3 start = new Vector3(gridCollider.bounds.min.x+GetCellSize()/2, planeYVal, gridCollider.bounds.min.z+GetCellSize()/2);
         Vector3 closest = start;
 
         for (int i = 0; i < NumberOfCellsPerSide; i++){
