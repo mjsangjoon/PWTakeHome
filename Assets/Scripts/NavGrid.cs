@@ -4,14 +4,17 @@ using System;
 
 public class NavGrid : MonoBehaviour
 {
-    public int NumberOfCellsPerSide;
-    public Vector3[] obstacleLocations;
-
-    [ContextMenuItem("Add this many obstacles to grid", "AddObstacles")]
-    public int numObstaclesToAdd;
-    public Player player;
-    public GameObject obstaclePrefab;
-    private float planeYVal = 0;
+    [SerializeField]
+    int NumberOfCellsPerSide;
+    [SerializeField]
+    Vector3[] obstacleLocations;
+    [SerializeField, ContextMenuItem("Add this many obstacles to grid", "AddObstacles")]
+    int numObstaclesToAdd;
+    [SerializeField]
+    Player player;
+    [SerializeField]
+    GameObject obstaclePrefab;
+    float planeYVal = 0;
 
     /// <summary>
     /// Given the current and desired location, return a path to the destination
@@ -33,13 +36,13 @@ public class NavGrid : MonoBehaviour
             path.Push(destinationNode);
             destinationNode = destinationNode.Parent;
         }
-        //last node pushed is the true destination, not grid destination
-        path.Push(new NavGridPathNode(
+        //last node pushed is the true destination within the node
+        /*path.Push(new NavGridPathNode(
             new Vector3(destination.x, destination.y, destination.z),
             destinationNode,
             destinationNode.fVal+1,
             destinationNode.gVal+1,
-            destinationNode.hVal));
+            destinationNode.hVal));*/
         return path.ToArray();
     }
 
@@ -301,7 +304,6 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(southeast) && !obstacleSet.Contains(southeast.Position)){
-            Debug.Log("successor valid7");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(southeast.Position, gridDestination);
                     fNew = gNew + hNew;
@@ -338,7 +340,6 @@ public class NavGrid : MonoBehaviour
                 }
                 // If successor is already checked or blocked, ignore it
                 else if (!checkedNodes.Contains(southwest) && !obstacleSet.Contains(southwest.Position)){
-            Debug.Log("successor valid8");
                     gNew = n.gVal + GetCellSize();
                     hNew = n.hVal + Vector3.Distance(southwest.Position, gridDestination);
                     fNew = gNew + hNew;
